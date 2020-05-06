@@ -1,9 +1,10 @@
-use byteorder::ReadBytesExt;
+use alloc::borrow::ToOwned;
+use alloc::vec::Vec;
+use compat::Read;
+use core::iter::repeat;
 use error::{Error, Result};
 use marker::Marker;
 use parser::ScanInfo;
-use std::io::Read;
-use std::iter::repeat;
 
 const LUT_BITS: u8 = 8;
 

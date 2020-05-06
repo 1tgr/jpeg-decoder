@@ -1,4 +1,7 @@
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use error::{Error, Result, UnsupportedFeature};
+use compat::truncf;
 use parser::Component;
 
 pub struct Upsampler {
@@ -177,7 +180,8 @@ impl Upsample for UpsamplerH1V2 {
         let row_near = row as f32 / 2.0;
         // If row_near's fractional is 0.0 we want row_far to be the previous row and if it's 0.5 we
         // want it to be the next row.
-        let row_far = (row_near + row_near.fract() * 3.0 - 0.25).min((input_height - 1) as f32);
+        let row_far = (row_near + (row_near - truncf(row_near)) * 3.0 - 0.25)
+            .min((input_height - 1) as f32);
 
         let input_near = &input[row_near as usize * row_stride ..];
         let input_far = &input[row_far as usize * row_stride ..];
@@ -200,7 +204,8 @@ impl Upsample for UpsamplerH2V2 {
         let row_near = row as f32 / 2.0;
         // If row_near's fractional is 0.0 we want row_far to be the previous row and if it's 0.5 we
         // want it to be the next row.
-        let row_far = (row_near + row_near.fract() * 3.0 - 0.25).min((input_height - 1) as f32);
+        let row_far = (row_near + (row_near - truncf(row_near)) * 3.0 - 0.25)
+            .min((input_height - 1) as f32);
 
         let input_near = &input[row_near as usize * row_stride ..];
         let input_far = &input[row_far as usize * row_stride ..];

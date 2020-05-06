@@ -1,15 +1,16 @@
-use byteorder::ReadBytesExt;
+use alloc::borrow::ToOwned;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
+use core::cmp;
+use core::mem;
+use core::ops::Range;
 use error::{Error, Result, UnsupportedFeature};
 use huffman::{fill_default_mjpeg_tables, HuffmanDecoder, HuffmanTable};
 use marker::Marker;
 use parser::{AdobeColorTransform, AppData, CodingProcess, Component, Dimensions, EntropyCoding, FrameInfo,
              parse_app, parse_com, parse_dht, parse_dqt, parse_dri, parse_sof, parse_sos, ScanInfo};
+use read::Read;
 use upsampler::Upsampler;
-use std::cmp;
-use std::io::Read;
-use std::mem;
-use std::ops::Range;
-use std::sync::Arc;
 use worker::{RowData, PlatformWorker, Worker};
 
 pub const MAX_COMPONENTS: usize = 4;

@@ -1,14 +1,16 @@
+#[cfg(feature = "std")]
 mod threaded;
 mod immediate;
 
-#[cfg(not(any(target_arch = "asmjs", target_arch = "wasm32")))]
-pub use self::threaded::ThreadedWorker as PlatformWorker;
-#[cfg(any(target_arch = "asmjs", target_arch = "wasm32"))]
+#[cfg(any(target_arch = "asmjs", target_arch = "wasm32", not(feature = "std")))]
 pub use self::immediate::ImmediateWorker as PlatformWorker;
+#[cfg(not(any(target_arch = "asmjs", target_arch = "wasm32", not(feature = "std"))))]
+pub use self::threaded::ThreadedWorker as PlatformWorker;
 
+use alloc::sync::Arc;
+use alloc::vec::Vec;
 use error::Result;
 use parser::Component;
-use std::sync::Arc;
 
 pub struct RowData {
     pub index: usize,

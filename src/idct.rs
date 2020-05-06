@@ -2,7 +2,7 @@
 // One example is tests/crashtest/images/imagetestsuite/b0b8914cc5f7a6eff409f16d8cc236c5.jpg
 // That's why wrapping operators are needed.
 use crate::parser::Dimensions;
-use std::num::Wrapping;
+use core::num::Wrapping;
 
 pub(crate) fn choose_idct_size(full_size: Dimensions, requested_size: Dimensions) -> usize {
     fn scaled(len: u16, scale: usize) -> u16 { ((len as u32 * scale as u32 - 1) / 8 + 1) as u16 }
@@ -364,8 +364,8 @@ fn test_dequantize_and_idct_block_8x8_all_zero() {
 fn test_dequantize_and_idct_block_8x8_saturated() {
     let mut output = [0u8; 8 * 8];
     dequantize_and_idct_block_8x8(
-        &[std::i16::MAX; 8*8],
-        &[std::u16::MAX; 8*8],
+        &[core::i16::MAX; 8 * 8],
+        &[core::u16::MAX; 8 * 8],
         8,
         &mut output);
     let expected = [

@@ -1,8 +1,7 @@
-use std::error::Error as StdError;
-use std::fmt;
-use std::io::Error as IoError;
+use alloc::string::String;
+use core::fmt;
 
-pub type Result<T> = ::std::result::Result<T, Error>;
+pub type Result<T> = ::core::result::Result<T, Error>;
 
 /// An enumeration over JPEG features (currently) unsupported by this library.
 ///
@@ -36,10 +35,17 @@ pub enum Error {
     Format(String),
     /// The image makes use of a JPEG feature not (currently) supported by this library.
     Unsupported(UnsupportedFeature),
+
+    #[cfg(not(feature = "std"))]
+    UnexpectedEof,
+
     /// An I/O error occurred while decoding the image.
-    Io(IoError),
+    #[cfg(feature = "std")]
+    Io(std::io::Error),
+
     /// An internal error occurred while decoding the image.
-    Internal(Box<dyn StdError + Send + Sync + 'static>), //TODO: not used, can be removed with the next version bump
+    #[cfg(feature = "std")]
+    Internal(Box<dyn std::error::Error + Send + Sync + 'static>), //TODO: not used, can be removed with the next version bump
 }
 
 impl fmt::Display for Error {
@@ -47,14 +53,22 @@ impl fmt::Display for Error {
         match *self {
             Error::Format(ref desc)      => write!(f, "invalid JPEG format: {}", desc),
             Error::Unsupported(ref feat) => write!(f, "unsupported JPEG feature: {:?}", feat),
-            Error::Io(ref err)           => err.fmt(f),
-            Error::Internal(ref err)     => err.fmt(f),
+
+            #[cfg(not(feature = "std"))]
+            Error::UnexpectedEof => f.write_str("unexpected end of data"),
+
+            #[cfg(feature = "std")]
+            Error::Io(ref err) => err.fmt(f),
+
+            #[cfg(feature = "std")]
+            Error::Internal(ref err) => err.fmt(f),
         }
     }
 }
 
-impl StdError for Error {
-    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+#[cfg(feature = "std")]
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
             Error::Io(ref err) => Some(err),
             Error::Internal(ref err) => Some(&**err),
@@ -63,8 +77,9 @@ impl StdError for Error {
     }
 }
 
-impl From<IoError> for Error {
-    fn from(err: IoError) -> Error {
+#[cfg(feature = "std")]
+impl From<std::io::Error> for Error {
+    fn from(err: std::io::Error) -> Error {
         Error::Io(err)
     }
 }

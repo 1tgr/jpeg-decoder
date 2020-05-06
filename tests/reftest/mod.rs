@@ -1,13 +1,11 @@
+use core::cmp;
 use jpeg;
 use png;
-use std::cmp;
-use std::fs::File;
-use std::path::Path;
-
-use super::common;
 
 #[test]
 fn reftest() {
+    use super::common;
+
     let files = common::test_files(&Path::new("tests").join("reftest").join("images"));
 
     for path in &files {

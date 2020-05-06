@@ -1,10 +1,12 @@
-use byteorder::{BigEndian, ReadBytesExt};
+use alloc::borrow::ToOwned;
+use alloc::vec::Vec;
+use byteorder::BigEndian;
+use compat::{Read, ceilf, skip_bytes};
+use core::ops::Range;
 use error::{Error, Result};
 use huffman::{HuffmanTable, HuffmanTableClass};
 use marker::Marker;
 use marker::Marker::*;
-use std::io::{self, Read};
-use std::ops::Range;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Dimensions {
@@ -91,8 +93,8 @@ impl FrameInfo {
         update_component_sizes(self.image_size, &mut self.components);
 
         self.output_size = Dimensions {
-            width: (self.image_size.width as f32 * idct_size as f32 / 8.0).ceil() as u16,
-            height: (self.image_size.height as f32 * idct_size as f32 / 8.0).ceil() as u16
+            width: ceilf(self.image_size.width as f32 * idct_size as f32 / 8.0) as u16,
+            height: ceilf(self.image_size.height as f32 * idct_size as f32 / 8.0) as u16,
         };
     }
 }
@@ -108,17 +110,6 @@ fn read_length<R: Read>(reader: &mut R, marker: Marker) -> Result<usize> {
     }
 
     Ok(length - 2)
-}
-
-fn skip_bytes<R: Read>(reader: &mut R, length: usize) -> Result<()> {
-    let length = length as u64;
-    let to_skip = &mut reader.by_ref().take(length);
-    let copied = io::copy(to_skip, &mut io::sink())?;
-    if copied < length {
-        Err(Error::Io(io::ErrorKind::UnexpectedEof.into()))
-    } else {
-        Ok(())
-    }
 }
 
 // Section B.2.2
@@ -311,7 +302,12 @@ pub fn parse_sos<R: Read>(reader: &mut R, frame: &FrameInfo) -> Result<ScanInfo>
 
         let component_index = match frame.components.iter().position(|c| c.identifier == identifier) {
             Some(value) => value,
-            None => return Err(Error::Format(format!("scan component identifier {} does not match any of the component identifiers defined in the frame", identifier))),
+            None => {
+                return Err(Error::Format(format!(
+                    "scan component identifier {} does not match any of the component identifiers defined in the frame",
+                    identifier
+                )))
+            }
         };
 
         // Each of the scan's components must be unique.
@@ -342,7 +338,7 @@ pub fn parse_sos<R: Read>(reader: &mut R, frame: &FrameInfo) -> Result<ScanInfo>
 
     let blocks_per_mcu = component_indices.iter().map(|&i| {
         frame.components[i].horizontal_sampling_factor as u32 * frame.components[i].vertical_sampling_factor as u32
-    }).fold(0, ::std::ops::Add::add);
+    }).fold(0, ::core::ops::Add::add);
 
     if component_count > 1 && blocks_per_mcu > 10 {
         return Err(Error::Format("scan with more than one component and more than 10 blocks per MCU".to_owned()));
@@ -472,7 +468,7 @@ pub fn parse_dht<R: Read>(reader: &mut R, is_baseline: Option<bool>) -> Result<(
         let mut counts = [0u8; 16];
         reader.read_exact(&mut counts)?;
 
-        let size = counts.iter().map(|&val| val as usize).fold(0, ::std::ops::Add::add);
+        let size = counts.iter().map(|&val| val as usize).fold(0, ::core::ops::Add::add);
 
         if size == 0 {
             return Err(Error::Format("encountered table with zero length in DHT".to_owned()));
